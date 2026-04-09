@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>zergonoc profile</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono&display=swap');
+        body {
+            background: #000;
+            margin: 0;
+            overflow: hidden;
+            color: white;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        #overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: black;
+            cursor: pointer;
+        }
+        
+        .click-anywhere {
+            font-size: 10px;
+            letter-spacing: 0.5em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.8);
+            animation: pulse 2s infinite;
+            z-index: 1000;
+        }
+        
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 0.4;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+        
+        #site-wrapper {
+            opacity: 0;
+            transform: scale(1.05);
+            transition: all 1s cubic-bezier(0.23, 1, 0.32, 1);
+            visibility: hidden;
+        }
+        
+        .glass-card {
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .bg-gif {
+            background: url('./forest.gif') center/cover no-repeat;
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+        }
+        
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        input[type=range] {
+            accent-color: #ffffff;
+            height: 4px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+        
+        .control-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 6px;
+        }
+        
+        .social-btn {
+            background-color: rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .social-btn:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+        /* Улучшенный Плеер */
+        
+        .vinyl-container {
+            display: inline-flex;
+            align-items: center;
+            gap: 0;
+            padding: 5px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 2rem;
+            margin: 0 auto 2rem auto;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            max-width: 48px;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        
+        .vinyl-container:hover {
+            background: rgba(255, 255, 255, 0.08);
+            gap: 12px;
+            padding-right: 20px;
+            max-width: 300px;
+        }
+        
+        .vinyl-wrapper {
+            position: relative;
+            width: 38px;
+            height: 38px;
+            flex-shrink: 0;
+            z-index: 2;
+        }
+        
+        .vinyl-disc {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: repeating-radial-gradient(#111, #111 2px, #181818 3px, #111 4px);
+            animation: spin 3s linear infinite;
+            animation-play-state: paused;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .vinyl-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 10px;
+            height: 10px;
+            background: #fff;
+            border-radius: 50%;
+            border: 2px solid #000;
+        }
+        
+        .song-info-wrapper {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .vinyl-container:hover .song-info-wrapper {
+            opacity: 1;
+        }
+        /* Эффект бегущей строки при длинном названии */
+        
+        .marquee {
+            display: inline-block;
+            animation: marquee 10s linear infinite;
+            padding-left: 0;
+        }
+        
+        @keyframes marquee {
+            0% {
+                transform: translateX(0);
+            }
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+        
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <audio id="bg-music" loop></audio>
+
+    <div id="overlay">
+        <div class="click-anywhere">CLICK ANYWHERE</div>
+        <canvas id="dither-canvas"></canvas>
+    </div>
+
+    <div id="site-wrapper" class="relative min-h-screen flex items-center justify-center p-4">
+        <div class="bg-gif"></div>
+        <div class="absolute inset-0 bg-black/50 z-[-1]"></div>
+
+        <main class="w-full max-w-xl z-10 text-center">
+            <div id="main-card" class="glass-card rounded-[3rem] p-8 md:p-12 shadow-2xl" style="background-color: rgba(255, 255, 255, 0.03);">
+                <div class="relative inline-block mb-6">
+                    <div class="absolute inset-0 bg-white rounded-full blur-3xl opacity-10 animate-pulse"></div>
+                    <img src="./pfp.gif" class="relative w-28 h-28 md:w-32 md:h-32 rounded-full border border-white/20 shadow-2xl object-cover">
+                </div>
+
+                <div id="nickname-container" class="text-4xl md:text-5xl font-bold mb-3 tracking-tighter h-12 md:h-16"></div>
+                <div id="typing-text" class="text-md text-gray-400 mb-8 h-6 mono"></div>
+
+                <div class="flex flex-row flex-wrap justify-center gap-2 md:gap-3 mb-10">
+                    <a href="https://steamcommunity.com/id/zergonoc" target="_blank" class="social-btn glass-card p-3 rounded-xl w-14 h-14 flex items-center justify-center"><img src="steam.png" class="w-6 h-6 opacity-80"></a>
+                    <a href="https://www.tiktok.com/@zergonoc" target="_blank" class="social-btn glass-card p-3 rounded-xl w-14 h-14 flex items-center justify-center"><img src="tiktok.png" class="w-6 h-6 opacity-80"></a>
+                    <a href="https://t.me/zergonoc" target="_blank" class="social-btn glass-card p-3 rounded-xl w-14 h-14 flex items-center justify-center"><img src="telegram.png" class="w-6 h-6 opacity-80"></a>
+                    <a href="https://www.youtube.com/@zergonoc" target="_blank" class="social-btn glass-card p-3 rounded-xl w-14 h-14 flex items-center justify-center"><svg class="w-6 h-6 fill-white/80" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
+                    <a href="https://twitch.tv/zergonoc" target="_blank" class="social-btn glass-card p-3 rounded-xl w-14 h-14 flex items-center justify-center"><svg class="w-6 h-6 fill-white/80" viewBox="0 0 24 24"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.857L10.286 17.143V14.57H6.429V1.714h14.142z"/></svg></a>
+                </div>
+
+                <div class="flex justify-center">
+                    <div id="next-track-btn" class="vinyl-container" title="Click to skip">
+                        <div class="vinyl-wrapper">
+                            <div id="vinyl" class="vinyl-disc"></div>
+                            <div class="vinyl-center"></div>
+                        </div>
+                        <div class="song-info-wrapper text-left">
+                            <p class="text-[8px] text-white/40 mono uppercase tracking-widest">Now Playing</p>
+                            <p id="song-name" class="text-[11px] font-bold mono text-white/80 italic"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-white/10">
+                    <div class="flex flex-col"><span class="control-label mono">Volume</span><input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.5"></div>
+                    <div class="flex flex-col"><span class="control-label mono">Card Opacity</span><input type="range" id="opacity-slider" min="0" max="0.03" step="0.001" value="0.03"></div>
+                </div>
+            </div>
+            <p class="mt-8 text-gray-600 mono text-[10px] uppercase tracking-[0.4em]">© 2026 zergonoc</p>
+        </main>
+    </div>
+
+    <script>
+        const songs = [{
+            path: 'track.mp3',
+            name: 'Something You Say',
+            artist: 'Isaac Holmes'
+        }, {
+            path: 'track2.mp3',
+            name: 'The 30th',
+            artist: 'Billie Eilish'
+        }, {
+            path: 'track3.mp3',
+            name: 'Not Anywhere',
+            artist: 'Alex G'
+        }, {
+            path: 'track4.mp3',
+            name: 'Endless',
+            artist: 'Lena Raine'
+        }, {
+            path: 'track5.mp3',
+            name: 'Impostor Syndrome',
+            artist: 'Sidney Gish'
+        }];
+        let currentTrackIdx = Math.floor(Math.random() * songs.length);
+
+        // ШЕЙДЕРЫ
+        const canvas = document.querySelector('#dither-canvas');
+        const scene = new THREE.Scene();
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        const renderer = new THREE.WebGLRenderer({
+            canvas,
+            antialias: false
+        });
+        const shaderMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                time: {
+                    value: 0
+                },
+                resolution: {
+                    value: new THREE.Vector2()
+                }
+            },
+            vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position, 1.0); }`,
+            fragmentShader: `precision highp float; uniform float time; uniform vec2 resolution; void main() { vec2 uv = gl_FragCoord.xy / resolution.xy; float wave = sin(uv.x * 5.0 + time * 0.4) * cos(uv.y * 3.0 + time * 0.3) * 0.5 + 0.5; float dither = mod(gl_FragCoord.x + mod(gl_FragCoord.y, 2.0), 2.0); vec3 color = vec3(wave * 0.3); gl_FragColor = vec4(color * (0.8 + 0.2 * dither), 1.0); }`
+        });
+        const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), shaderMaterial);
+        scene.add(quad);
+
+        function resize() {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            shaderMaterial.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function animate(t) {
+            shaderMaterial.uniforms.time.value = t * 0.001;
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+        requestAnimationFrame(animate);
+
+        // ЛОГИКА
+        const overlay = document.getElementById('overlay');
+        const wrapper = document.getElementById('site-wrapper');
+        const audio = document.getElementById('bg-music');
+        const volSlider = document.getElementById('volume-slider');
+        const opaSider = document.getElementById('opacity-slider');
+        const mainCard = document.getElementById('main-card');
+        const vinyl = document.getElementById('vinyl');
+        const songLabel = document.getElementById('song-name');
+        const nextBtn = document.getElementById('next-track-btn');
+
+        function updateTrack() {
+            const track = songs[currentTrackIdx];
+            audio.src = track.path;
+            songLabel.innerHTML = `${track.name} — <span class="opacity-60">${track.artist}</span>`;
+            if (overlay.style.display === 'none') {
+                audio.play().catch(() => {});
+                gsap.fromTo(vinyl, {
+                    scale: 0.8
+                }, {
+                    scale: 1,
+                    duration: 0.5,
+                    ease: "back.out(2)"
+                });
+            }
+        }
+        updateTrack();
+
+        overlay.addEventListener('click', () => {
+            audio.play().catch(() => {});
+            audio.volume = volSlider.value;
+            vinyl.style.animationPlayState = 'running';
+            gsap.to(overlay, {
+                opacity: 0,
+                duration: 1.2,
+                onComplete: () => {
+                    overlay.style.display = 'none';
+                    wrapper.style.visibility = 'visible';
+                    gsap.to(wrapper, {
+                        opacity: 1,
+                        scale: 1,
+                        duration: 1.5,
+                        ease: "expo.out"
+                    });
+                }
+            });
+        });
+
+        nextBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            currentTrackIdx = (currentTrackIdx + 1) % songs.length;
+            updateTrack();
+        });
+        volSlider.addEventListener('input', (e) => audio.volume = e.target.value);
+        opaSider.addEventListener('input', (e) => mainCard.style.backgroundColor = `rgba(255, 255, 255, ${e.target.value})`);
+
+        // REACT ТЕКСТ
+        const {
+            useState,
+            useEffect,
+            createElement
+        } = React;
+
+        const NicknameTyper = () => {
+            const [text, setText] = useState('');
+            const [step, setStep] = useState(0);
+
+            const sequence = [{
+                    t: 'z',
+                    d: 350
+                }, {
+                    t: 'ze',
+                    d: 150
+                }, {
+                    t: 'zer',
+                    d: 150
+                }, {
+                    t: 'zerf',
+                    d: 250
+                }, // Опечатка 1
+                {
+                    t: 'zer',
+                    d: 200
+                }, // Стерли
+                {
+                    t: 'zerg',
+                    d: 150
+                }, {
+                    t: 'zergo',
+                    d: 150
+                }, {
+                    t: 'zergon',
+                    d: 150
+                }, {
+                    t: 'zergono',
+                    d: 150
+                }, {
+                    t: 'zergonoc',
+                    d: 150
+                }, {
+                    t: 'zergonocv',
+                    d: 350
+                }, // Опечатка 2
+                {
+                    t: 'zergonoc',
+                    d: 150
+                } // Стерли
+            ];
+
+            useEffect(() => {
+                if (step < sequence.length) {
+                    const timeout = setTimeout(() => {
+                        setText(sequence[step].t);
+                        setStep(step + 1);
+                    }, sequence[step].d);
+                    return () => clearTimeout(timeout);
+                }
+            }, [step]);
+
+            return createElement('span', null, text,
+                step < sequence.length ? createElement('span', {
+                    className: 'animate-pulse'
+                }, '|') : null
+            );
+        };
+
+        const SubTyper = ({
+            phrases
+        }) => {
+            const [text, setText] = useState('');
+            const [idx, setIdx] = useState(0);
+            const [del, setDel] = useState(false);
+            useEffect(() => {
+                const phrase = phrases[idx];
+                const timeout = setTimeout(() => {
+                    if (!del && text.length < phrase.length) setText(phrase.substring(0, text.length + 1));
+                    else if (del && text.length > 0) setText(phrase.substring(0, text.length - 1));
+                    else if (!del && text.length === phrase.length) setTimeout(() => setDel(true), 2500);
+                    else {
+                        setDel(false);
+                        setIdx((idx + 1) % phrases.length);
+                    }
+                }, del ? 30 : 70);
+                return () => clearTimeout(timeout);
+            }, [text, del, idx, phrases]);
+            return createElement('span', null, text, createElement('span', {
+                className: 'animate-pulse'
+            }, '_'));
+        };
+
+        const nickRoot = ReactDOM.createRoot(document.getElementById('nickname-container'));
+        nickRoot.render(createElement(NicknameTyper));
+
+        const subRoot = ReactDOM.createRoot(document.getElementById('typing-text'));
+        setTimeout(() => {
+            subRoot.render(createElement(SubTyper, {
+                phrases: ['Small Developer from Russia', 'Lol', 'Check my links below', 'Thanks for visiting!', 'Have a nice day!', 'zergonoc was here :)', 'Click the vinyl to skip', 'Alex G is love, Alex G is life', 'I made this site in 2 days', 'This is not a template, I coded it myself', 'I hope you like it!', 'my favorite game is Portal 2', 'I also really liked Reanimal', 'Ну и чего ты смотришь тут, иди на ссылки переходи xD', ]
+            }));
+        }, 2500);
+    </script>
+</body>
+
+</html>
